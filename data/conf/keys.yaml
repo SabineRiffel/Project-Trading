@@ -1,3 +1,4 @@
 KEYS:
+  # Alpaca API Keys to access market data
   APCA-API-KEY-ID-Data: "PKSVGE57MC4W3U3PL4XJ4OGLOR"
   APCA-API-SECRET-KEY-Data: "" # Add your secret key here
