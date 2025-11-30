@@ -65,5 +65,8 @@ df = pd.DataFrame(news_data)
 eastern = pytz.timezone("US/Eastern")
 df["timestamp"] = pd.to_datetime(df["timestamp"], utc=True).dt.tz_convert(eastern)
 
+df = df[(df['timestamp'] >= START_DATE.astimezone(eastern)) &
+        (df['timestamp'] <= END_DATE.astimezone(eastern))]
+
 df.to_csv(f'{PATH_BARS}/{SYMBOLS[0]}_news.csv', index=False, encoding="utf-8")
 print("News data acquisition complete.")

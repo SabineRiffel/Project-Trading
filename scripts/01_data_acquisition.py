@@ -86,5 +86,5 @@ df.drop(columns=['is_open'], inplace=True)
 
 # Save the DataFrame as a Parquet file for efficient storage
 print(f'Saving data to {PATH_BARS}/{SYMBOLS}.parquet...')
-df.to_parquet(f'{PATH_BARS}/{SYMBOLS[0]}.parquet', index=False)
+#df.to_parquet(f'{PATH_BARS}/{SYMBOLS[0]}.parquet', index=False)
 print('Data acquisition complete.')

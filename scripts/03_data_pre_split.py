@@ -50,7 +50,6 @@ df.to_parquet(f'{PATH_BARS}/{SYMBOLS[0]}_features.parquet', index=False)
 print('Feature engineering complete.')
 
 
-
 # Plot all EMA Slopes
 print("Plotting all EMA slopes...")
 plt.figure(figsize=(12,6))
