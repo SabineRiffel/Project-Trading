@@ -165,8 +165,6 @@ This step involves preparing the AAPL stock data and news data for modeling by c
 ![03_trade_ranges.png](images/03_trade_ranges.png)
 *Splits the trade amounts into ranges for better visualization of trading activity. Order type Exchange was excluded because of inproper data.*
 
-
-
 ---
 ## 4 - Split Data
 ## 5 - Post-Split Preparation
