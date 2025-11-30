@@ -18,6 +18,8 @@ Second-order slope (acceleration) of EMAs over t = [5, 10, 15, 30, 60] minutes
 ## Table of Contents
 
 - [1 - Data Acquisition](#1-data-acquisition)
+- [2 - Data Understanding](#2-data-understanding)
+- [3 - Pre-Split Preparation](#3-pre-split-preparation)
 
 ---
 
@@ -68,7 +70,7 @@ This step involves exploring and understanding the AAPL stock data and news data
 *The table provides descriptive statistics for the AAPL stock data, including count, mean, standard deviation, minimum, 25th percentile, median (50th percentile), 75th percentile, and maximum values for each column in the `AAPL.parquet`.
 The stock showed significant volatility, trading between 122–259 USD. Trading activity was highly uneven, likely driven by major news events or market announcements.*
 
-**AAPL News Data**
+**News Data**
 
 **- Columns**
 - `timestamp`: Date and time of the news article
@@ -82,7 +84,7 @@ The stock showed significant volatility, trading between 122–259 USD. Trading 
 ![02_descriptive_stats_news.png](images/02_descriptive_stats_news.png)
 *The dataset `APPL_news.csv` has about 14000 news entries. Most headlines are unique, but some are repeated many times, showing duplicated or widely shared stories. Some content and summaries are missing, so the data is uneven. Overall, it’s a mix of unique articles and repeated reports.*
 
-**Senator Financial Disclosures**
+**Senator Financial Disclosures Data**
 
 **- Columns**
 - `tx_date` : Date of Trade
@@ -110,17 +112,59 @@ The stock showed significant volatility, trading between 122–259 USD. Trading 
 ![02_vwap_vs_close.png](images/02_vwap_vs_close.png)
 *The plot shows the relationship between AAPL’s Volume Weighted Average Price (VWAP) and its closing prices for a random date. The x-axis shows the date, while the y-axis represents the price in USD. When the closing price is above the VWAP, it typically signals bullish market sentiment; conversely, when it falls below, it may indicate bearish tendencies.*
 
+![02_senator_disclosures](images/02_senator_disclosures.png)
+*Financial disclosures filed as pure readable periodic disclosures vs filed as non-readable PDF files*
+
+![02_senator_trades](images/02_senator_trades.png)
+*Number of stock trades by US Senators per year*
+
+![02_senator_top_traders](images/02_senator_top_traders.png)
+*Which senators trade the most per year including PDF filings*
+
 ---
 
 ## 3 - Pre-Split Preparation
 
-Stock Data
-- Neue Features erstellen (EMA, Slope, Acceleration, Normalisierung)
-- Daten bereinigen
+**Description**
+This step involves preparing the AAPL stock data and news data for modeling by creating new features and cleaning the data.
 
-News
-- Artikel kategorisieren (RELEVANZ:positiv, negativ, neutral)
-- Daten bereinigen
+**Script**
+
+[03_pre_split_preparation.py](scripts/03_pre_split_preparation.py)
+[03_pre_split_preparation_news.py](scripts/03_pre_split_preparation_news.py)
+
+**AAPL Stock Data**
+- New features are stored in `AAPL_features.parquet`
+- Normalized VWAP (Volume Weighted Average Price) and Volume
+- Exponential Moving Average over t = [5, 10, 15, 30, 60] minutes
+- Linear Regression Slope of EMAs over t = [5, 10, 15, 30, 60] minutes
+- Second-order Slope (Acceleration) of EMAs over t = [5, 10, 15, 30, 60] minutes
+
+![03_AAPL_features.png](images/03_AAPL_features.png)
+
+**News Data**
+- New features are stored in `news_features.csv`
+- Sentiment Analysis Features using the VADER sentiment analysis model
+  - +1 indicates positive sentiment
+  - -1 indicates negative sentiment
+  - 0 indicates neutral sentiment
+- Relevance Category classified as positive, negative, or neutral based on the stock price movement on the day the news was published
+
+![03_news_features.png](images/03_news_features.png)
+
+**Senator Financial Disclosures Data**
+
+**Plots**
+
+![03_vwap_volume.png](images/03_vwap_volume.png)
+*Normalized VWAP and Volume for AAPL stock over a random date. Both features are scaled between 0 and 1 for better comparison.*
+
+![03_sentiment_distribution.png](images/03_sentiment_distribution.png)
+*Distribution of sentiment scores from news articles related to AAPL. The sentiment scores range from -1 (most negative) to +1 (most positive), with a significant number of articles exhibiting neutral sentiment around 0.*
+
+![03_trade_ranges.png](images/03_trade_ranges.png)
+*Splits the trade amounts into ranges for better visualization of trading activity. Order type Exchange was excluded because of inproper data.*
+
 
 
 ---
