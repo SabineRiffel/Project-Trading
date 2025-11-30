@@ -153,6 +153,10 @@ This step involves preparing the AAPL stock data and news data for modeling by c
 ![03_news_features.png](images/03_news_features.png)
 
 **Senator Financial Disclosures Data**
+- New features are stored in `senator_features.csv`
+- Movement Category classified as up and down based on the stock price movement on the day after the trade was made
+
+![03_senator_features.png](images/03_senator_features.png)
 
 **Plots**
 
