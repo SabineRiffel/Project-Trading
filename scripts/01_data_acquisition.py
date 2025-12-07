@@ -7,6 +7,7 @@ from alpaca.data.enums import Adjustment
 from datetime import datetime
 import pytz
 import yaml
+import pandas as pd
 
 # Download stock bar data from Alpaca API and save as Parquet file
 # Load API credential from YAML configuration file
@@ -55,36 +56,35 @@ def check_open(ts):
     open_dt, close_dt = cal_map[d]
     return open_dt <= ts_eastern < close_dt
 
+all_data = []
+
 # Create a request object for historical bar data
 print(f'Creating data request for {SYMBOLS} from {START_DATE} to {END_DATE}...')
-request = StockBarsRequest(
-    symbol_or_symbols=SYMBOLS[0],
-    timeframe=TimeFrame.Minute,
-    adjustment=Adjustment.ALL,
-    start=START_DATE,
-    end=END_DATE
-)
+for symbol in SYMBOLS:
+    print(f'Processing {symbol}...')
+    request = StockBarsRequest(
+        symbol_or_symbols=symbol,
+        timeframe=TimeFrame.Minute,
+        adjustment=Adjustment.ALL,
+        start=START_DATE,
+        end=END_DATE
+    )
 
-# Retrieve bar data from Alpaca API
-print('Downloading bar data...')
-bars = client.get_stock_bars(request)
-df = bars.df
-df.reset_index(inplace=True)
+    # Retrieve bar data for the current symbol
+    bars = client.get_stock_bars(request)
+    df = bars.df.reset_index()
 
-# Remove the 'symbol' column if it exists
-if 'symbol' in df.columns:
-    df.drop(columns=['symbol'], inplace=True)
+    # Add a column to indicate if the market was open at the timestamp
+    df["is_open"] = df["timestamp"].map(check_open)
+    df = df[df["is_open"]].drop(columns=["is_open"])
 
-# Add a column to indicate if the market was open at the timestamp
-df["is_open"] = df["timestamp"].map(check_open)
+    # Append the Dataframe to the list
+    all_data.append(df)
 
-# Filter the DataFrame to include only rows where the market was open
-df = df[df['is_open']]
-
-# Drop the 'is_open' column as it's no longer needed
-df.drop(columns=['is_open'], inplace=True)
+# Concatenate all symbol Dataframes into a single Dataframe
+df = pd.concat(all_data, ignore_index=True)
 
 # Save the DataFrame as a Parquet file for efficient storage
-print(f'Saving data to {PATH_BARS}/{SYMBOLS}.parquet...')
-#df.to_parquet(f'{PATH_BARS}/{SYMBOLS[0]}.parquet', index=False)
+print(f'Saving data to {PATH_BARS}/stock_data.parquet...')
+df.to_parquet(f'{PATH_BARS}/stock_data.parquet', index=False)
 print('Data acquisition complete.')

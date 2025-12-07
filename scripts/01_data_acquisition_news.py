@@ -26,40 +26,39 @@ SYMBOLS = params['DATA_ACQUISITON']['SYMBOLS']
 print('Downloading news data...')
 news_client = NewsClient(api_key=API_KEY, secret_key=SECRET_KEY)
 
-# Create a request object for news data
-request_params = NewsRequest(
-    symbols=SYMBOLS[0],
-    start=START_DATE,
-    end=END_DATE,
-    include_content=True
-)
+all_data = []
 
-# Fetch news data
-news = news_client.get_news(request_params)
+# Loop over all symbols
+for symbol in SYMBOLS:
+    print(f'Processing {symbol}...')
+    request_params = NewsRequest(
+        symbols=symbol,
+        start=START_DATE,
+        end=END_DATE,
+        include_content=True
+    )
 
-# Convert news data to a list of dictionaries
-articles = news.dict()
+    # Fetch news data for this symbol
+    news = news_client.get_news(request_params)
+    articles = news.dict()
+    news_list = articles.get('news', [])
 
-# Extract the list of news articles
-news_list =articles['news']
-news_data = []
+    # Process each article
+    for article in news_list:
+        raw_html = article.get("content", "")
+        plain_text = BeautifulSoup(raw_html, "html.parser").get_text(strip=True)
 
-# Process each article to extract plain text from HTML content
-for article in news_list:
-    # Convert HTML content to plain text
-    raw_html = article.get("content", "")
-    plain_text = BeautifulSoup(raw_html, "html.parser").get_text(strip=True)
+        all_data.append({
+            "symbol": symbol,
+            "timestamp": article.get("created_at"),
+            "headline": article.get("headline"),
+            "content": plain_text,
+            "summary": article.get("summary"),
+            "url": article.get("url")
+        })
 
-    news_data.append({
-        "timestamp": article.get("created_at"),
-        "headline": article.get("headline"),
-        "content": plain_text,
-        "summary": article.get("summary"),
-        "url": article.get("url")
-    })
-
-# Save the processed news data to a CSV file
-df = pd.DataFrame(news_data)
+# Convert to DataFrame
+df = pd.DataFrame(all_data)
 
 # Convert 'created_at' to Eastern Time
 eastern = pytz.timezone("US/Eastern")
@@ -68,5 +67,6 @@ df["timestamp"] = pd.to_datetime(df["timestamp"], utc=True).dt.tz_convert(easter
 df = df[(df['timestamp'] >= START_DATE.astimezone(eastern)) &
         (df['timestamp'] <= END_DATE.astimezone(eastern))]
 
-df.to_csv(f'{PATH_BARS}/{SYMBOLS[0]}_news.csv', index=False, encoding="utf-8")
+#df.to_csv(f'{PATH_BARS}/news_data.csv', index=False, encoding="utf-8")
+df.to_parquet(f'{PATH_BARS}/news_data.parquet', index=False)
 print("News data acquisition complete.")
