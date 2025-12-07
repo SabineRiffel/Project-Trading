@@ -8,11 +8,6 @@ DATA_ACQUISITON:
   END_DATE: '2025-06-30'
   SYMBOLS:
     - 'AAPL'
-    - 'MSFT'
-    - 'NFLX'
-    - 'AMZN'
-    - 'PYPL'
-    - 'NVDA'
 DATA_UNDERSTANDING:
   FIGURE_PATH: '../images'
 
