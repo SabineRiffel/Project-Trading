@@ -4,8 +4,7 @@ import matplotlib.pyplot as plt
 import pandas as pd
 import yaml
 
-# Load data acquisition parameters from YAML configuration file
-print('Loading parameters...')
+# Load parameters
 params = yaml.safe_load(open("../data/conf/params.yaml"))
 PATH_BARS = params['DATA_ACQUISITON']['DATA_PATH']
 START_DATE = datetime.strptime(params['DATA_ACQUISITON']['START_DATE'], "%Y-%m-%d")
@@ -13,63 +12,54 @@ END_DATE = datetime.strptime(params['DATA_ACQUISITON']['END_DATE'], "%Y-%m-%d")
 SYMBOLS = params['DATA_ACQUISITON']['SYMBOLS']
 PATH_FIGURE = params['DATA_UNDERSTANDING']['FIGURE_PATH']
 
-# Load the downloaded Parquet file into a DataFrame and copy it so raw data is preserved
-print('Loading data from Parquet file...')
-df_raw = pd.read_parquet(f'{PATH_BARS}/{SYMBOLS[0]}.parquet')
-df = df_raw.copy()
+# Load raw data
+df_raw = pd.read_parquet(f'{PATH_BARS}/stock_data.parquet')
 
-# Normalize 'vwap' and 'volume' columns using StandardScaler
-print('Normalizing vwap and volume columns...')
-scaler = StandardScaler()
-df[["vwap_norm", "volume_norm"]] = scaler.fit_transform(df[["vwap", "volume"]])
-
-# Calculate Exponential Moving Averages (EMAs) for specified time windows
-print('Calculating exponential moving averages (EMAs)...')
+# Feature Engineering
 ema_windows = [5, 10, 15, 30, 60]
 
-for w in ema_windows:
-    df[f'ema_{w}'] = df['close'].ewm(span=w, adjust=False).mean()
+all_features = []
 
-# Calculate slopes and accelerations of the EMAs
-for w in ema_windows:
-    df[f"ema_{w}_slope"] = df[f"ema_{w}"].diff()
+# Loop for each symbol to calculate EMAs, slopes, accelerations, and normalize features
+for symbol in SYMBOLS:
+    print(f"Processing {symbol}...")
+    df = df_raw[df_raw["symbol"] == symbol].copy()
 
-for w in ema_windows:
-    df[f"ema_{w}_accel"] = df[f"ema_{w}_slope"].diff()
+    # Calculate EMAs
+    for w in ema_windows:
+        df[f'ema_{w}'] = df['close'].ewm(span=w, adjust=False).mean()
+        df[f'ema_{w}_slope'] = df[f'ema_{w}'].diff()
+        df[f'ema_{w}_accel'] = df[f'ema_{w}_slope'].diff()
 
-feature_cols = [f"ema_{w}" for w in ema_windows] + \
-               [f"ema_{w}_slope" for w in ema_windows] + \
-               [f"ema_{w}_accel" for w in ema_windows]
+    # Normalize features
+    feature_cols = [f"ema_{w}" for w in ema_windows] + \
+                   [f"ema_{w}_slope" for w in ema_windows] + \
+                   [f"ema_{w}_accel" for w in ema_windows]
 
-scaler = StandardScaler()
-df[[f"{col}_norm" for col in feature_cols]] = scaler.fit_transform(df[feature_cols])
+    scaler = StandardScaler()
+    df[[f"{col}_norm" for col in feature_cols]] = scaler.fit_transform(df[feature_cols])
 
-# Save the DataFrame with features to a new Parquet file
-print('Saving features to Parquet file...')
-df.to_parquet(f'{PATH_BARS}/{SYMBOLS[0]}_features.parquet', index=False)
-print('Feature engineering complete.')
+    # Save features for this symbol
+    all_features.append(df)
 
+# Combine all symbols' features into a single DataFrame
+df_all = pd.concat(all_features, ignore_index=True)
 
-# Plot all EMA Slopes
-print("Plotting all EMA slopes...")
+# Save features to Parquet file
+print('Saving features to parquet file...')
+df_all.to_parquet(f"{PATH_BARS}/stock_features.parquet", index=False)
+
+# Plot all EMA30 Accelerations for each symbol
+print("Plotting all symbols' EMA30 Acceleration...")
 plt.figure(figsize=(12,6))
-for w in ema_windows:
-    plt.plot(df["timestamp"], df[f"ema_{w}_accel"], label=f"Accel EMA {w}")
+for symbol in SYMBOLS:
+    df = df_all[df_all["symbol"] == symbol]
+    plt.plot(df["timestamp"], df["ema_30_accel"], label=f"{symbol} EMA30 Accel")
+
 plt.legend()
-plt.title("EMA Accelerations (Trend Acceleration)")
+plt.title("EMA30 Acceleration for All Symbols")
 plt.xlabel("Date")
 plt.ylabel("Acceleration")
 plt.tight_layout()
-plt.savefig(f"{PATH_FIGURE}/03_ema_trend.png"); plt.close()
-
-# Plot normalized VWAP and Volume
-plt.figure(figsize=(12,6))
-plt.plot(df["timestamp"], df["volume_norm"], label="Normalized Volume", color="orange")
-plt.plot(df["timestamp"], df["vwap_norm"], label="Normalized VWAP", color="blue")
-plt.title("Normalized VWAP and Volume over Time")
-plt.xlabel("Time")
-plt.ylabel("Normalized Values")
-plt.legend()
-plt.xticks(rotation=45)
-plt.tight_layout()
-plt.savefig(f"{PATH_FIGURE}/03_vwap_vs_volume.png"); plt.close()
+plt.savefig(f"{PATH_FIGURE}/03_stock_ema30_accel.png")
+plt.close()
