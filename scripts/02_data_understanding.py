@@ -1,9 +1,6 @@
 import matplotlib.pyplot as plt
 import pandas as pd
-import pytz
 import yaml
-import random
-
 
 # Plot stock performance for multiple symbols
 # Load data acquisition parameters from YAML configuration file
@@ -45,7 +42,7 @@ plt.savefig(f'{PATH_FIGURE}/02_stock_performance_plot.png'); plt.close()
 # Read the news data from a CSV file
 print('Loading news data...')
 #df_news = pd.read_csv(f'{PATH_BARS}/news_data.csv')
-df_news = pd.read_parquet(f'{PATH_BARS}/news_parquet.csv')
+df_news = pd.read_parquet(f'{PATH_BARS}/news_data.parquet')
 
 # Plot the count of news articles per symbol
 print('Plotting news count per symbol...')
