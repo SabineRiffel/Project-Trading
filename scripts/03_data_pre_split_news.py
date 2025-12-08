@@ -77,9 +77,9 @@ for symbol in SYMBOLS:
 # Combine all symbols again
 df = pd.concat(targets, ignore_index=True)
 
-# Save the DataFrame with features to a new CSV file
-print('Saving features to CSV file...')
-df.to_csv(f'{PATH_BARS}/news_features.csv', index=False)
+# Save the DataFrame with features to a new Parquet file
+print('Saving features to parquet file...')
+df.to_parquet(f'{PATH_BARS}/news_features.parquet', index=False)
 print('News feature engineering complete.')
 
 # Plot the distribution of sentiment scores
