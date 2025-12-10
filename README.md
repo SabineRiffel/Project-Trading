@@ -221,6 +221,28 @@ This step involves preparing the merged stock–news dataset for model training 
 
 [05_post_split.py](scripts/05_post_split.py)
 
+### **Stock & News Data**
+Stock and news features were merged on synchronized using pd.merge_asof with a 5‑minute tolerance. Training, validation, and test splits were defined and stored in `splits.json`.
+
+![05_merged_test_set.png](images/05_merged_test_set.png)
+
+#### **Data Sources**
+- `stock_features.parquet`
+- `news_features.parquet`
+
+#### **Splits**
+- Train: 2022-01-01 to 2024-12-31
+- Validation: 2025-01-01 to 2025-03-31
+- Test: 2025-04-01 to 2025-06-30
+
+#### **Features**
+- ema_5, ema_10, ema_15, ema_30
+- ema_w_slope_5, ema_w_slope_10, ema_w_slope_15, ema_w_slope_30
+- ema_w_accel_5, ema_w_accel_10, ema_w_accel_15, ema_w_accel_30
+
+#### **Target**
+- future_return_30m: Expected return 30 minutes after a news event
+
 ---
 
 ## 6 - Feature Selection
@@ -250,14 +272,24 @@ This step involves training a random forest model to predict short-term returns 
 [06_data_modeling.ipynb](scripts/06_data_modeling.ipynb)
 [07_model_training.py](scripts/07_model_training.py)
 
-#### *Plots*
+### **Stock & News Data**
+
+#### **Architecture**
+- Random Forest: Ensemble of decision trees, no neural network layers
+
+#### **Parameters**
+- 100 trees, reproducible seed, parallelized training
+
+#### **Baseline**
+- R² 
+
+#### **Plots**
 
 ![07_random_forest_validation_news.png](images/07_random_forest_validation_news.png)
 *The plot shows the validation result of the random forest mode for prediction future returns for the next 30 minutes.
 When the predicted and actual lines align, the model captures short‑term return dynamics well, while deviations reveal periods of weaker 
 performance likely caused by market noise or sudden sentiment shifts. Overall, it offers a visual check of accuracy and stability, indicating that the 
 random forest can capture general trends but struggles with fine‑grained fluctuations*
-
 
 ---
 

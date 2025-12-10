@@ -24,6 +24,10 @@ model.fit(X_train, y_train.values.ravel())
 val_score = model.score(X_val, y_val)
 val_pred_rf = model.predict(X_val)
 
+print(val_score)
+print(val_pred_rf)
+
+
 # Save the trained model
 joblib.dump(model, f"{PATH_BARS}/news model/random_forest_model_news.pkl")
 
