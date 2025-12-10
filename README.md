@@ -215,7 +215,7 @@ This step involves loading stock data and applies chronological train/validation
 
 ### **Description**
 
-This step involves preparing the merged stock–news dataset for model training by aligning timestamps, applying predefined chronological splits, extracting the relevant features and target variables.
+This step involves preparing the merged stock–news dataset for model training by aligning timestamps, applying predefined chronological splits, extracting the relevant features and target variables. 
 
 ### **Script**
 
@@ -225,11 +225,15 @@ This step involves preparing the merged stock–news dataset for model training 
 Stock and news features were merged on synchronized using pd.merge_asof with a 5‑minute tolerance. Training, validation, and test splits were defined and stored in `splits.json`.
 
 ![05_merged_test_set.png](images/05_merged_test_set.png)
+### **Stock & Senator Data**
+Senator data was merged and timezones were aligned. Trade ranges (e.g. "$15,001 – $50,000") were converted into a midpoint. 
+Negative midpoints signifiy a sale of stock, positive signify a stock purchase. Trade filing times were parsed into full timestamps.
 
 #### **Data Sources**
 - `stock_features.parquet`
 - `news_features.parquet`
-
+- `merged_senator_transactions_2022_2025.csv`
+- 
 #### **Splits**
 - Train: 2022-01-01 to 2024-12-31
 - Validation: 2025-01-01 to 2025-03-31
@@ -239,6 +243,7 @@ Stock and news features were merged on synchronized using pd.merge_asof with a 5
 - ema_5, ema_10, ema_15, ema_30
 - ema_w_slope_5, ema_w_slope_10, ema_w_slope_15, ema_w_slope_30
 - ema_w_accel_5, ema_w_accel_10, ema_w_accel_15, ema_w_accel_30
+- mean_amount, time_of_filed
 
 #### **Target**
 - future_return_30m: Expected return 30 minutes after a news event
@@ -252,7 +257,7 @@ Stock and news features were merged on synchronized using pd.merge_asof with a 5
 This step focuses on determining the most significant predictive features by examining their correlation with the target variable. The objective is to identify which engineered stock- and news-derived features exhibit meaningful associations with future returns and should therefore be incorporated into model training.
 
 ### **Script**
-
+[06_data_modeling.ipynb](scripts/06_feature_selection.py)
 [06_feature_selection.py](scripts/06_feature_selection.py)
 
 #### *Plots*
