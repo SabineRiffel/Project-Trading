@@ -227,7 +227,7 @@ Stock and news features were merged on synchronized using pd.merge_asof with a 5
 ![05_merged_test_set.png](images/05_merged_test_set.png)
 ### **Stock & Senator Data**
 Senator data was merged and timezones were aligned. Trade ranges (e.g. "$15,001 – $50,000") were converted into a midpoint. 
-Negative midpoints signifiy a sale of stock, positive signify a stock purchase. Trade filing times were parsed into full timestamps.
+Negative midpoints signifiy a sale of stock, positive signify a stock purchase. Trade filing times were parsed into full timestamp.
 
 #### **Data Sources**
 - `stock_features.parquet`
