@@ -182,6 +182,7 @@ This step involves preparing the stock data, news data and senator trades data f
 ### **Senator Financial Disclosures Data**
 - New features are stored in `senator_features.csv`
 - Movement Category classified as up and down based on the stock price movement on the day after the trade was made
+- Data was extendend to include timestamps of publications of financial disclosures.
 
 ![03_senator_features.png](images/03_senator_features.png)
 
@@ -227,13 +228,13 @@ Stock and news features were merged on synchronized using pd.merge_asof with a 5
 ![05_merged_test_set.png](images/05_merged_test_set.png)
 ### **Stock & Senator Data**
 Senator data was merged and timezones were aligned. Trade ranges (e.g. "$15,001 – $50,000") were converted into a midpoint. 
-Negative midpoints signifiy a sale of stock, positive signify a stock purchase. Trade filing times were parsed into full timestamp.
+Negative midpoints signifiy a sale of stock, positive signify a stock purchase. Trade filing times were parsed into full timestamps.
 
 #### **Data Sources**
 - `stock_features.parquet`
 - `news_features.parquet`
 - `merged_senator_transactions_2022_2025.csv`
-- 
+
 #### **Splits**
 - Train: 2022-01-01 to 2024-12-31
 - Validation: 2025-01-01 to 2025-03-31
