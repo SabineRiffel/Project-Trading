@@ -42,7 +42,7 @@ prices["timestamp"] = pd.to_datetime(prices["timestamp"], utc=True)
 prices["date"] = pd.to_datetime(prices["timestamp"].dt.date)
 
 # Calculate future returns for each news event
-horizon = 60  # Minutes into the future
+horizon = 30  # Minutes into the future
 
 targets = []
 for symbol in SYMBOLS:

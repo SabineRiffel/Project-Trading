@@ -64,4 +64,4 @@ plt.close()
 # Save MAE results per symbol
 results_df = pd.DataFrame(results_per_symbol, columns=["Symbol", "MAE_Model", "MAE_Baseline"])
 print(results_df)
-results_df.to_csv(f"{PATH_BARS}/news model/random_forest_test_metrics_per_symbol.csv", index=False)
+results_df.to_csv(f"{PATH_BARS}/news_random_forest_test_metrics_per_symbol.csv", index=False)

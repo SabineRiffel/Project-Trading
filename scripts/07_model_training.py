@@ -6,18 +6,21 @@ import matplotlib.pyplot as plt
 import joblib
 
 # Load parameters
+print('Loading parameters...')
 params = yaml.safe_load(open("../data/conf/params.yaml"))
 PATH_BARS = params['DATA_ACQUISITON']['DATA_PATH']
 SYMBOLS = params['DATA_ACQUISITON']['SYMBOLS']
 PATH_FIGURE = params['DATA_UNDERSTANDING']['FIGURE_PATH']
 
 # Load training, validation
+print('Loading data sets...')
 X_train = pd.read_parquet(f"{PATH_BARS}/news model/X_train_news.parquet")
 y_train = pd.read_parquet(f"{PATH_BARS}/news model/y_train_news.parquet")
 X_val = pd.read_parquet(f"{PATH_BARS}/news model/X_val_news.parquet")
 y_val = pd.read_parquet(f"{PATH_BARS}/news model/y_val_news.parquet")
 
 # Initialize and train Random Forest model
+print("Initializing and training random forest model...")
 model = RandomForestRegressor(n_estimators=300, random_state=42, n_jobs=-1)
 model.fit(X_train, y_train["future_return_30m"].values.ravel())
 
@@ -25,6 +28,7 @@ model.fit(X_train, y_train["future_return_30m"].values.ravel())
 joblib.dump(model, f"{PATH_BARS}/news model/random_forest_model_news.pkl")
 
 # Deviation per symbol
+print("Plotting results...")
 results_per_symbol = []
 
 fig, axes = plt.subplots(2, 3, figsize=(18, 10), sharex=True, sharey=True)
@@ -66,3 +70,9 @@ for i, symbol in enumerate(SYMBOLS):
 plt.suptitle("Absolute Deviations: Model vs. Baseline per Symbol", fontsize=16)
 plt.tight_layout(rect=[0, 0, 1, 0.96])
 plt.savefig(f"{PATH_FIGURE}/07_random_forest_MAE_per_symbol.png");plt.close()
+
+print("Saving results...")
+# Save MAE results per symbol
+results_df = pd.DataFrame(results_per_symbol, columns=["Symbol", "MAE_Model", "MAE_Baseline"])
+print(results_df)
+results_df.to_csv(f"{PATH_BARS}/news_random_forest_train_metrics_per_symbol.csv", index=False)
