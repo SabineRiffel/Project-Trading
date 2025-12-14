@@ -25,7 +25,7 @@ df = df_raw.copy()
 analyzer = SentimentIntensityAnalyzer()
 df["sentiment"] = df["headline"].apply(lambda x: analyzer.polarity_scores(x)["compound"])
 df["sentiment_label"] = df["sentiment"].apply(
-    lambda x: "positive" if x > 0.05 else ("negative" if x < -0.05 else "neutral")
+    lambda x: 1 if x > 0.05 else (-1 if x < -0.05 else 0)
 )
 
 # TF-IDF Vectorization for Headlines
@@ -42,7 +42,7 @@ prices["timestamp"] = pd.to_datetime(prices["timestamp"], utc=True)
 prices["date"] = pd.to_datetime(prices["timestamp"].dt.date)
 
 # Calculate future returns for each news event
-horizon = 30  # Minutes into the future
+horizon = 60  # Minutes into the future
 
 targets = []
 for symbol in SYMBOLS:
@@ -97,11 +97,11 @@ plt.xlabel("Sentiment Score")
 plt.ylabel("Density")
 plt.legend(title="Symbol")
 plt.tight_layout()
-plt.savefig(f'{PATH_FIGURE}/03_news_sentiment_distribution_.png');
+plt.savefig(f'{PATH_FIGURE}/03_news_sentiment_distribution.png');
 plt.close()
 
 # Plot price reaction to news events
-window = 30  # Minutes before and after the news event
+window = 300  # Minutes before and after the news event
 
 # Load price data
 prices = pd.read_parquet(f'{PATH_BARS}/stock_data.parquet')
@@ -148,3 +148,37 @@ for i, symbol in enumerate(SYMBOLS):
 print("Saving plot for price reaction to news events...")
 plt.tight_layout()
 plt.savefig(f"{PATH_FIGURE}/03_news_price_reaction.png");plt.close()
+
+# New figure for volume reaction
+fig, axes = plt.subplots(n_rows, n_cols, figsize=(15, 5 * n_rows), sharey=True)
+axes = axes.flatten()
+
+for i, symbol in enumerate(SYMBOLS):
+    df_symbol = df[df['symbol'] == symbol].copy()
+    prices_symbol = prices[prices['symbol'] == symbol]
+
+    event_volumes = []
+    # Iterate over each news event for the symbol
+    for _, row in df_symbol.iterrows():
+        ts = row['timestamp']
+        sub = prices_symbol[(prices_symbol['timestamp'] >= ts - pd.Timedelta(minutes=window)) &
+                            (prices_symbol['timestamp'] <= ts + pd.Timedelta(minutes=window))].copy()
+
+        # Calculate normalized returns relative to the news event
+        if len(sub) > 0:
+            sub['minutes'] = (sub['timestamp'] - ts).dt.total_seconds() / 60
+            sub['norm_volume'] = sub['volume'] / sub['volume'].mean() # relative to average
+            event_volumes.append(sub[['minutes', 'norm_volume']])
+
+    # Aggregate and plot the average normalized volume curve
+    if event_volumes:
+        avg_vol = pd.concat(event_volumes).groupby('minutes')['norm_volume'].mean()
+        sns.lineplot(x=avg_vol.index, y=avg_vol.values, ax=axes[i], color="orange")
+        axes[i].axvline(0, color="purple", linestyle="--")
+        axes[i].set_title(f"{symbol} News Volume Reaction")
+        axes[i].set_xlabel("Minutes relative to News")
+        axes[i].set_ylabel("Relative Volume")
+
+print("Saving plot for volume reaction to news events...")
+plt.tight_layout()
+plt.savefig(f"{PATH_FIGURE}/03_news_volume_reaction.png");plt.close()

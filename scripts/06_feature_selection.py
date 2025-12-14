@@ -12,6 +12,10 @@ PATH_FIGURE = params['DATA_UNDERSTANDING']['FIGURE_PATH']
 X_train = pd.read_parquet(f"{PATH_BARS}/news model/X_train_news.parquet")
 y_train = pd.read_parquet(f"{PATH_BARS}/news model/y_train_news.parquet")
 
+# Keep only the target column (ignore 'symbol')
+if "symbol" in y_train.columns:
+    y_train = y_train.drop(columns=["symbol"])
+
 # Feature selection using correlation with the target variable
 correlations = X_train.join(y_train).corr()
 
