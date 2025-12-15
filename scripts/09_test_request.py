@@ -1,6 +1,6 @@
 import requests
 
-url = "http://127.0.0.1:8000/predict"
+url = "http://127.0.0.1:8001/predict"
 payload = {
         "features": {
             "ema_5": 123.4,
@@ -27,3 +27,32 @@ payload = {
 response = requests.post(url, json=payload)
 print("Status Code:", response.status_code)
 print("Response Text:", response.text)
+
+url = "http://127.0.0.1:8000/backtest"
+
+payload = [
+    {
+        "features": {
+            "ema_5": 120.0,
+            "ema_10": 122.0,
+            "close": 125.0,
+            "volume": 80000,
+            "vwap": 124.5,
+            "sentiment_0": 1
+        }
+    },
+    {
+        "features": {
+            "ema_5": 130.0,
+            "ema_10": 132.0,
+            "close": 133.0,
+            "volume": 120000,
+            "vwap": 132.5,
+            "sentiment_-1": 1
+        }
+    }
+]
+
+response = requests.post(url, json=payload)
+print("Status Code:", response.status_code)
+print("Response:", response.json())

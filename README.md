@@ -3,7 +3,7 @@
 ## Problem Definition
 **Target**
 
-The goal of this project is to predict the intraday trend direction of Apple Inc. (AAPL) stock prices over the next t = [5, 10, 15, 30, 60] minutes using historical minute-level data from 2022-01-01 to 2025-06-30. 
+The goal of this project is to predict the intraday trend direction of Apple Inc. (AAPL) stock prices over the next t = [5, 10, 15, 30] minutes using historical minute-level data from 2022-01-01 to 2025-06-30. 
 We use a Random Forest model with features including the linear regression slope over each t-minute window, normalized by the mean price, to classify the trend direction.
 
 **Input Features**
@@ -350,6 +350,21 @@ The model predicts the future 30-minute return (`future_return_30m`). From these
 *The market line in the plots represents the buy-and-hold performance. Comparing it to the strategy line shows whether the model added value by avoiding downturns or capturing upswings more effectively.*
 
 #### *Papertrade*
+For paper trading we connected the trained model to the Alpaca Paper API. All trades and predictions are stored in `paper_trading_log.csv`. The setup included:
+- Live market data: 1‑minute bars per symbol
+- Feature engineering: EMAs, slopes, accelerations, close, volume, VWAP
+- News sentiment: Headlines fetched via Alpaca News API, analyzed with VADER, mapped into sentiment features (sentiment_-1, sentiment_0, sentiment_1)
+
+Trading rule:
+- **Long** (buy): If the predicted return > 0
+- **Flat** (no position): If the predicted return ≤ 0
+
+![09_paper_signal_distribution.png](images/09_paper_signal_distribution.png)
+
+---
+
+Next Steps:
+- Change target to a binary classification of up and down movements
 
 
 

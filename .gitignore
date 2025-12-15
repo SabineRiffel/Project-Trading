@@ -1,5 +1,21 @@
 /data/conf/keys.yaml
 /data/stock_data.parquet
-/data/news_data.parquet
 /data/stock_features.parquet
+/data/news_data.parquet
+/data/news_features.parquet
 /data/splits.json
+/data/senator_transactions_all.csv
+
+/data/news model/X_test_news.parquet
+/data/news model/X_train_news.parquet
+/data/news model/X_val_news.parquet
+/data/news model/y_test_news.parquet
+/data/news model/y_train_news.parquet
+/data/news model/y_val_news.parquet
+/data/random_forest_model_news.pkl
+/data/news model/random_forest_test_metrics_news.csv
+/data/news_random_forest_backtest_testset_per_symbol.csv
+/data/news_random_forest_test_metrics_per_symbol.csv
+/data/news_random_forest_train_metrics_per_symbol.csv
+/scripts/test.py
+/data/paper_trading_log.csv
