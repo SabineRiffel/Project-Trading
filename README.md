@@ -175,9 +175,10 @@ This step involves preparing the stock data, news data and senator trades data f
 *The plot shows the sentiment distribution for each symbol. Most stock news articles are neutral, suggesting they have little to no influence on the stock price, and there are more positive articles than negative ones*
 
 ![03_news_price_reaction.png](images/03_news_price_reaction.png)
-*The plot shows the normalized price reaction of each symbol to stock news articles at their publication time, within a 60-minute window (30 minutes before and 30 minutes after publication). It indicates that PYPL is the most affected by news releases, followed by NFLX, while the other stocks show much weaker reactions*
+*The plot shows the normalized price reaction of each symbol to stock news articles at their publication time, within a 300-minute window (150 minutes before and 150 minutes after publication). It indicates that PYPL is the most affected by news releases, followed by NFLX, while the other stocks show much weaker reactions*
 
-
+![03_news_volume_reaction.png](images/03_news_volume_reaction.png)
+*The plot shows the normalized trading volume reaction of each symbol to stock news articles at their publication time, within a 300‑minute window (150 minutes before and 150 minutes after publication). It indicates that PYPL exhibits the strongest surge in trading activity following news releases, with NFLX also showing a noticeable increase, while the other stocks display comparatively weaker changes in volume.*
 
 ### **Senator Financial Disclosures Data**
 - New features are stored in `senator_features.csv`
@@ -236,9 +237,9 @@ Negative midpoints signifiy a sale of stock, positive signify a stock purchase. 
 - `merged_senator_transactions_2022_2025.csv`
 
 #### **Splits**
-- Train: 2022-01-01 to 2024-12-31
-- Validation: 2025-01-01 to 2025-03-31
-- Test: 2025-04-01 to 2025-06-30
+- Train: 2022-01-01 to 2023-12-31
+- Validation: 2024-01-01 to 2024-12-31
+- Test: 2025-01-01 to 2025-06-30
 
 #### **Features**
 - ema_5, ema_10, ema_15, ema_30
@@ -275,8 +276,9 @@ This step involves training a random forest model to predict short-term returns 
 
 ### **Script**
 
-[06_data_modeling.ipynb](scripts/06_data_modeling.ipynb)
 [07_model_training.py](scripts/07_model_training.py)
+
+[07_modell_training_senators.ipynb](scripts/07_modell_training_senators.ipynb)
 
 ### **Stock & News Data**
 
@@ -284,18 +286,25 @@ This step involves training a random forest model to predict short-term returns 
 - Random Forest: Ensemble of decision trees, no neural network layers
 
 #### **Parameters**
-- 100 trees, reproducible seed, parallelized training
+- Algorithm: Random Forest
+- No neural network layers
+- Parameters:
+  - n_estimators = 300 (number of trees)
+  - random_state = 42 (reproducibility)
+  - n_jobs = -1 (parallelized training)
 
 #### **Baseline**
-- R² 
+- Comparison against a Mean Return Baseline per symbol
+- Evaluation metric: Mean Absolute Error (MAE)
 
 #### **Plots**
 
-![07_random_forest_validation_news.png](images/07_random_forest_validation_news.png)
-*The plot shows the validation result of the random forest mode for prediction future returns for the next 30 minutes.
-When the predicted and actual lines align, the model captures short‑term return dynamics well, while deviations reveal periods of weaker 
-performance likely caused by market noise or sudden sentiment shifts. Overall, it offers a visual check of accuracy and stability, indicating that the 
-random forest can capture general trends but struggles with fine‑grained fluctuations*
+![07_train_metrics_per_symbol.png](images/07_train_metrics_per_symbol.png)
+*This table summarizes the prediction accuracy of the random forest model compared to a simple mean-return baseline across six stock symbols.
+The comparison highlights that while the model slightly outperforms the baseline in most cases, the margin is narrow—suggesting that short-term return prediction remains challenging due to market noise and volatility.*
+
+![07_random_forest_MAE_per_symbol.png](images/07_random_forest_MAE_per_symbol.png)
+*The plot compares the absolute deviation of the random forest model against a mean-return baseline across six stock symbols. Each subplot shows how prediction errors evolve over time.*
 
 ---
 
@@ -303,13 +312,16 @@ random forest can capture general trends but struggles with fine‑grained fluct
 
 ### **Description**
 
-This step involves evaluating the trained Random Forest model on the test dataset to assess its ability to generalize beyond the training and validation sets. The script loads the previously saved model and applies it to unseen test data.
+This step involves evaluating the trained random forest model on the test dataset to assess its ability to generalize beyond the training and validation sets. The script loads the previously saved model and applies it to unseen test data.
 
 ### **Script**
 [08_model_testing.py](scripts/08_model_testing.py)
 
 #### *Plots*
-![08_random_forest_test_news.png](images/08_random_forest_test_news.png)
+![08_test_metrics_per_symbol.png](images/08_test_metrics_per_symbol.png)
+*This table presents the final evaluation of the random forest model on unseen test data. For each stock symbol, it compares the model’s MAE against a simple mean-return baseline. The results show that the model consistently performs slightly worse than the baseline, indicating limited generalization capability and highlighting the need for further refinement or alternative modeling approaches.*
+
+![08_random_forest_test_per_symbol.png](images/08_random_forest_test_per_symbol.png)
 *The plot shows the test results of the random forest model, revealing a large variance between predicted and actual prices. This suggests that the model requires further refinement and improvement*
 
 ---
@@ -317,15 +329,39 @@ This step involves evaluating the trained Random Forest model on the test datase
 ## 9 - Deployment
 
 ### **Description**
+This step covers the deployment and backtesting of the trained random forest model for stock return prediction. The goal is to evaluate how the trading strategy derived from the model would have performed compared to a simple buy-and-hold approach.
+
 ### **Script**
-### **Stock Data**
-#### *Plots*
+[09_deployment_backtest.py](scripts/09_deployment_backtest.py)
+[09_deployment_papertrade.py](scripts/09_deployment_papertrade.py)
+[09_model_deployment.ipynb](scripts/09_model_deployment.ipynb)
 
-### **News Data**
-#### *Plots*
+### **Stock & News Data**
 
-### **Senator Financial Disclosures Data**
-#### *Plots*
+#### *Backtest*
+The model predicts the future 30-minute return (`future_return_30m`). From these predictions we derived a simple trading rule:  
+- **Long** (buy): If the predicted return > 0
+- **Flat** (no position): If the predicted return ≤ 0
+
+- **Entry:** If the model predicts a positive return, a long position is opened
+- **Exit:** If the prediction turns negative or zero, the position is closed
+
+![09_backtest_testset_per_symbol.png](images/09_backtest_testset_per_symbol.png)
+*The market line in the plots represents the buy-and-hold performance. Comparing it to the strategy line shows whether the model added value by avoiding downturns or capturing upswings more effectively.*
+
+#### *Papertrade*
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
