@@ -335,6 +335,7 @@ This step covers the deployment and backtesting of the trained random forest mod
 [09_deployment_backtest.py](scripts/09_deployment_backtest.py)
 [09_deployment_papertrade.py](scripts/09_deployment_papertrade.py)
 [09_model_deployment.ipynb](scripts/09_model_deployment.ipynb)
+[09_senator_deployment_papertrades.ipynb](scripts/09_senator_deployment_papertrades.ipynb) 
 
 ### **Stock & News Data**
 
@@ -366,11 +367,43 @@ Trading rule:
 Next Steps:
 - Change target to a binary classification of up and down movements
 
+### **Stock & Senator Data**
 
+#### *Backtest*
+**Test set:** April – June 2025 (unseen data)  
+**Target:** `abs_change_pct` – absolute 30-minute price change  
 
+**Trading Rule:**
+- Only trade when model predicts unusually strong reactions  
+- **Threshold:** top 20 % of predicted absolute moves  
+- **Entry:** model predicts `predicted_abs_move > threshold` → open long  
+- **Exit:** after 30 minutes (prediction horizon) → close position  
 
+**Baseline:** average absolute 30-minute return (`realized_abs_move.mean()`)
 
+**Performance Analysis:**
+- Strategy vs baseline comparison (mean abs return, improvement)
+- Per stock performance to see which tickers react stronger
+- Equity curve and cumulative returns over time
 
+![09_backtest_testset_per_symbol.png](images/09_backtest_testset_per_symbol.png)
+*The red dashed line represents the baseline, the strategy line shows cumulative returns from trades triggered by the model.*
+
+#### *Papertrade*
+For paper trading, the trained model is applied to the same feature set in near real-time. Features include:
+- `signed_amount`, `tx_hour`, `tx_weekday`, `price_before`, `vol_before`, `vwap_before`  
+
+Trading rule:
+- **Long** (buy): If `predicted_abs_move > threshold`  
+- **Flat** (no position): Otherwise  
+
+All trades and predictions are stored in `paper_trading_log.csv`.  
+
+![09_paper_trade_distribution.png](images/09_paper_trade_distribution.png)
+*Distribution of LONG trades over time per ticker.*
+
+![09_paper_avg_pred.png](images/09_paper_avg_pred.png)
+*Average predicted absolute move per stock.*
 
 
 
