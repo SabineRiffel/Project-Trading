@@ -21,6 +21,15 @@ y_test = pd.read_parquet(f"{PATH_BARS}/news model/y_test_news.parquet")
 # Load trained model
 model = joblib.load(f"{PATH_BARS}/news model/random_forest_model_news.pkl")
 
+# Ensure consistent feature set in test data
+expected = list(model.feature_names_in_)
+X_test = X_test[[f for f in expected if f in X_test.columns]]
+for f in expected:
+    if f not in X_test.columns:
+        X_test[f] = 0
+
+X_test = X_test[expected]
+
 # Deviation per symbol
 results_per_symbol = []
 fig, axes = plt.subplots(2, 3, figsize=(18, 10), sharex=True, sharey=True)
