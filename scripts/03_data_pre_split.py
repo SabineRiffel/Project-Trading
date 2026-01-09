@@ -29,6 +29,9 @@ for symbol in SYMBOLS:
         df[f'ema_{w}_slope'] = df[f'ema_{w}'].diff()
         df[f'ema_{w}_accel'] = df[f'ema_{w}_slope'].diff()
 
+    # Volume Spike Indicator (30-period rolling mean)
+    df["volume_spike"] = df["volume"] / df["volume"].rolling(30).mean()
+
     # Normalize features - commented out because normalization will be done after train-test split
     #feature_cols = [f"ema_{w}" for w in ema_windows] + \
     #               [f"ema_{w}_slope" for w in ema_windows] + \
