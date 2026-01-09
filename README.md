@@ -386,9 +386,6 @@ Next Steps:
 - Per stock performance to see which tickers react stronger
 - Equity curve and cumulative returns over time
 
-![09_backtest_testset_per_symbol.png](images/09_backtest_testset_per_symbol.png)
-*The red dashed line represents the baseline, the strategy line shows cumulative returns from trades triggered by the model.*
-
 #### *Papertrade*
 For paper trading, the trained model is applied to the same feature set in near real-time. Features include:
 - `signed_amount`, `tx_hour`, `tx_weekday`, `price_before`, `vol_before`, `vwap_before`  
