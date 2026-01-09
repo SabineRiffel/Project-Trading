@@ -11,22 +11,26 @@ from alpaca.data.requests import NewsRequest
 import pandas as pd
 import matplotlib.pyplot as plt
 import seaborn as sns
+from fastapi import FastAPI
 
 # Load API credential from YAML configuration file
 print("Loading configuration...")
 keys = yaml.safe_load(open("../data/conf/keys.yaml"))
+#keys = yaml.safe_load(open("/conf/keys.yaml"))
 API_KEY = keys["KEYS"]["APCA-API-KEY-ID-Data"]
 SECRET_KEY = keys["KEYS"]["APCA-API-SECRET-KEY-Data"]
+BASE_URL = keys["KEYS"]["APCA-BASE-URL-Data"]
 
 params = yaml.safe_load(open("../data/conf/params.yaml"))
 PATH_BARS = params['DATA_ACQUISITON']['DATA_PATH']
 SYMBOLS = params["DATA_ACQUISITON"]["SYMBOLS"]
 PATH_FIGURE = params['DATA_UNDERSTANDING']['FIGURE_PATH']
-BASE_URL = "https://paper-api.alpaca.markets"
 
 # Load trained model
-model = joblib.load(f"{PATH_BARS}/random_forest_model_news.pkl")
-
+model = joblib.load(f"{PATH_BARS}/news model/random_forest_model_news.pkl")
+print(model.feature_names_in_)
+#model = joblib.load("data/news model/random_forest_model_news.pkl")
+app = FastAPI(title="Trading API", version="1.0")
 # Trading controls
 QTY_PER_TRADE = params.get("DEPLOYMENT", {}).get("QTY_PER_TRADE", 10)
 INTERVAL_SECONDS = params.get("DEPLOYMENT", {}).get("INTERVAL_SECONDS", 60)
@@ -76,6 +80,14 @@ def build_features_from_bars(df_bars: pd.DataFrame, sentiment_label: int) -> pd.
     ema_15_accel = ema_15_series.diff().diff().iloc[-1]
     ema_30_accel = ema_30_series.diff().diff().iloc[-1]
 
+    # Volume Spike
+    roll_vol = df_bars["volume"].rolling(30, min_periods=3).mean()
+    last_roll = roll_vol.iloc[-1]
+    if pd.isna(last_roll) or last_roll == 0:
+        volume_spike = 1.0
+    else:
+        volume_spike = df_bars["volume"].iloc[-1] / last_roll
+
     # One-hot sentiment mapping to three features
     s_neg = 1 if sentiment_label == -1 else 0
     s_neu = 1 if sentiment_label == 0 else 0
@@ -98,6 +110,7 @@ def build_features_from_bars(df_bars: pd.DataFrame, sentiment_label: int) -> pd.
         "close": float(df_bars["close"].iloc[-1]),
         "volume": float(df_bars["volume"].iloc[-1]),
         "vwap": float(df_bars["vwap"].iloc[-1]),
+        "volume_spike": float(volume_spike),
         "sentiment_-1": int(s_neg),
         "sentiment_0": int(s_neu),
         "sentiment_1": int(s_pos),
@@ -194,11 +207,28 @@ def main():
                 # Build features
                 X_live = build_features_from_bars(df_bars, sentiment_label)
 
+                # Adjust features to match model's expected input
+                expected = list(model.feature_names_in_)
+                # Remove unknown features
+                X_live = X_live[[f for f in expected if f in X_live.columns]]
+                # Add missing features with default 0
+                for f in expected:
+                    if f not in X_live.columns:
+                        X_live[f] = 0
+
+                # Reorder columns
+                X_live = X_live[expected]
+
                 # Predict
                 pred = float(model.predict(X_live)[0])
 
                 # Derive signal
-                signal = "LONG" if pred > 0.0 else "FLAT"
+                if pred > 0:
+                    signal = "LONG"
+                elif pred < 0:
+                    signal = "EXIT"
+                else:
+                    signal = "FLAT"
 
                 # Optionally place paper order (commented safeguard)
                 if signal == "LONG":
@@ -213,6 +243,28 @@ def main():
                         print(f"[ORDER] LONG {symbol} qty={QTY_PER_TRADE} at ~{df_bars['close'].iloc[-1]:.2f}")
                     except Exception as oe:
                         print(f"[WARN] Order submit failed for {symbol}: {oe}")
+                elif signal == "EXIT":
+                    try:
+                        # Check if position exists
+                        try:
+                            pos = api.get_position(symbol)
+                            qty_held = float(pos.qty)
+                        except:
+                            qty_held = 0
+
+                        if qty_held >0:
+                            api.submit_order(
+                                symbol=symbol,
+                                qty=QTY_PER_TRADE,
+                                side="sell",
+                                type="market",
+                                time_in_force="gtc"
+                            )
+                            print(f"[ORDER] EXIT {symbol} qty={QTY_PER_TRADE} at ~{df_bars['close'].iloc[-1]:.2f}")
+                        else:
+                            print(f"[INFO] EXIT signal for {symbol}, but no position held. Skipping.")
+                    except Exception as oe: (
+                        print(f"[WARN] Exit order failed for {symbol}: {oe}"))
 
                 # Log event
                 log_event(
@@ -267,3 +319,15 @@ plt.tight_layout()
 plt.savefig("../images/09_paper_avg_pred.png")
 plt.close()
 
+# Plot feature importances from the model
+importances = pd.DataFrame({
+    "feature": model.feature_names_in_,
+    "importance": model.feature_importances_
+    }).sort_values("importance", ascending=False)
+plt.figure(figsize=(10,6))
+plt.barh(importances["feature"], importances["importance"])
+plt.title("Feature Importances (Random Forest)")
+plt.xlabel("Importance")
+plt.gca().invert_yaxis()
+plt.tight_layout()
+plt.savefig("../images/09_paper_feature_importances.png");plt.close()

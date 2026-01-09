@@ -15,7 +15,15 @@ X_test = pd.read_parquet(f"{PATH_BARS}/news model/X_test_news.parquet")
 y_test = pd.read_parquet(f"{PATH_BARS}/news model/y_test_news.parquet")
 
 # Load model
-model = joblib.load(f"{PATH_BARS}/random_forest_model_news.pkl")
+model = joblib.load(f"{PATH_BARS}/news model/random_forest_model_news.pkl")
+
+# Align X_test to model features
+expected = list(model.feature_names_in_)
+X_test = X_test[[f for f in expected if f in X_test.columns]]
+for f in expected:
+    if f not in X_test.columns:
+        X_test[f] = 0
+X_test = X_test[expected]
 
 # Backtest per symbol
 results_per_symbol = []
@@ -29,6 +37,9 @@ for i, symbol in enumerate(SYMBOLS):
     mask = y_test["symbol"] == symbol
     y_test_sym = y_test.loc[mask, "future_return_30m"]
     X_test_sym = X_test.loc[mask]
+
+    # Align X_test_sym to model features
+    X_test_sym = X_test_sym[expected]
 
     # Model predictions
     pred_sym = model.predict(X_test_sym)
