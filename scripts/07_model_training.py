@@ -1,6 +1,7 @@
 import yaml
 import pandas as pd
 from sklearn.ensemble import RandomForestRegressor
+from sklearn.ensemble import RandomForestClassifier
 from sklearn.metrics import mean_absolute_error
 import matplotlib.pyplot as plt
 import joblib
@@ -19,13 +20,42 @@ y_train = pd.read_parquet(f"{PATH_BARS}/news model/y_train_news.parquet")
 X_val = pd.read_parquet(f"{PATH_BARS}/news model/X_val_news.parquet")
 y_val = pd.read_parquet(f"{PATH_BARS}/news model/y_val_news.parquet")
 
+# Ensure consistent feature set
+expected_features = [ "ema_5", "ema_10", "ema_15", "ema_30",
+                      "ema_5_slope", "ema_10_slope", "ema_15_slope", "ema_30_slope",
+                      "ema_5_accel", "ema_10_accel", "ema_15_accel", "ema_30_accel",
+                      "close", "volume", "vwap", "volume_spike",
+                      "sentiment_-1", "sentiment_0", "sentiment_1"
+                      ]
+
+# Add missing features with default value 0
+for f in expected_features:
+    if f not in X_train.columns:
+        X_train[f] = 0
+    if f not in X_val.columns:
+        X_val[f] = 0
+
+# Keep only expected features
+X_train = X_train[expected_features]
+X_val = X_val[expected_features]
+
 # Initialize and train Random Forest model
 print("Initializing and training random forest model...")
 model = RandomForestRegressor(n_estimators=300, random_state=42, n_jobs=-1)
 model.fit(X_train, y_train["future_return_30m"].values.ravel())
+print(model.feature_names_in_)
+
+# Intialize and train Random Forest Classifier model
+# print("Initializing and training random forest classifier model...")
+# model = RandomForestClassifier(n_estimators=300, random_state=42, n_jobs=-1)
+# model.fit(X_train, y_train["target_direction"])
+
+# Save feature names inside the model for deployment
+model.feature_names_in_ = expected_features
 
 # Save the trained model
 joblib.dump(model, f"{PATH_BARS}/news model/random_forest_model_news.pkl")
+print("Model saved successfully.")
 
 # Deviation per symbol
 print("Plotting results...")
