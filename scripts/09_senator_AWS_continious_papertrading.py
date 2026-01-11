@@ -1,102 +1,125 @@
+import os
 import time
-import schedule
-from alpaca_trade_api.rest import REST
-import pandas as pd
+import yaml
 import joblib
+import datetime as dt
+import pandas as pd
+import alpaca_trade_api as tradeapi
+import schedule
 
-# Configuration (load from a config file in practice)
-API_KEY = "your_paper_key"
-SECRET_KEY = "your_paper_secret"
+# =====================
+# Config
+# =====================
+keys = yaml.safe_load(open("../data/conf/keys.yaml"))
+params = yaml.safe_load(open("../data/conf/params.yaml"))
+
+API_KEY = keys["KEYS"]["APCA-API-KEY-ID-Data"]
+SECRET_KEY = keys["KEYS"]["APCA-API-SECRET-KEY-Data"]
 BASE_URL = "https://paper-api.alpaca.markets"
-MODEL_PATH = "models/senator_randomforest.pkl"
 
-# Initialize
-api = REST(API_KEY, SECRET_KEY, BASE_URL)
+SYMBOLS = params["DATA_ACQUISITON"]["SYMBOLS"]
+QTY_PER_TRADE = params["DEPLOYMENT"]["QTY_PER_TRADE"]
+BAR_LIMIT = params["DEPLOYMENT"]["BAR_LIMIT_FOR_FEATURES"]
+SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
+MODEL_PATH = os.path.join(SCRIPT_DIR, "models", "senator_randomforest.pkl")
+
+LOG_FILE = "../data/paper_trading_log.csv"
+
+CONF_THRESHOLD = 0.01  # adjust based on backtest
+
+# =====================
+# Init
+# =====================
+api = tradeapi.REST(API_KEY, SECRET_KEY, BASE_URL, api_version="v2")
 model = joblib.load(MODEL_PATH)
+FEATURES = list(model.feature_names_in_)
 
+# =====================
+# Helpers
+# =====================
+def get_latest_bars(symbol):
+    bars = api.get_bars(symbol, "1Min", limit=BAR_LIMIT)
+    data = [{
+        "close": b.c,
+        "volume": b.v,
+        "vwap": b.vw if b.vw else b.c
+    } for b in bars]
+    return pd.DataFrame(data)
 
-def fetch_recent_filings_lookback(hours=24):
-    """
-    In a real scenario, you would query an API or database
-    for recent senator filings from the past `hours` hours.
-    This is a placeholder for your data acquisition logic.
-    """
-    # Example: Read from your updated test set or a live feed
-    # This should return a DataFrame with 'Ticker', 'TimeOfFiled', 'signed_amount', etc.
-    pass
-
-
-def check_and_trade():
-    print(f"[{pd.Timestamp.now()}] Checking for new signals...")
-
-    # 1. Get recent filings
-    df_new = fetch_recent_filings_lookback(hours=6)
-
-    if df_new.empty:
-        print("No new filings.")
-        return
-
-    # 2. For each filing, get recent market data and build features
-    for idx, row in df_new.iterrows():
-        try:
-            # Get recent bars (like in reference code)
-            bars = api.get_bars(row['Ticker'], "15Min", limit=20).df
-            if bars.empty:
-                continue
-
-            # Build your feature vector for the model
-            # ... (Your feature engineering logic here) ...
-            features = pd.DataFrame([your_features])
-
-            # Ensure feature order matches model
-            features = features[model.feature_names_in_]
-
-            # Predict
-            pred = model.predict(features)[0]
-
-            # Trading logic
-            current_pos = get_position(row['Ticker'])
-            if pred > THRESHOLD and not current_pos:
-                submit_order(row['Ticker'], qty=10, side='buy')
-                log_trade(row['Ticker'], 'BUY', pred)
-            elif pred < EXIT_THRESHOLD and current_pos:
-                submit_order(row['Ticker'], qty=current_pos, side='sell')
-                log_trade(row['Ticker'], 'SELL', pred)
-
-        except Exception as e:
-            print(f"Error processing {row['Ticker']}: {e}")
-            continue
-
-
-def get_position(symbol):
-    """Check existing position for a symbol."""
+def has_position(symbol):
     try:
         pos = api.get_position(symbol)
-        return float(pos.qty)
+        return float(pos.qty) > 0
     except:
-        return 0
+        return False
 
-
-def submit_order(symbol, qty, side):
-    """Submit a paper trade order."""
+def market_is_open():
     try:
-        api.submit_order(
-            symbol=symbol,
-            qty=qty,
-            side=side,
-            type='market',
-            time_in_force='day'
-        )
-        print(f"Paper {side.upper()} order for {qty} {symbol}")
-    except Exception as e:
-        print(f"Order failed: {e}")
+        clock = api.get_clock()
+        return clock.is_open
+    except:
+        return False
 
+def log_trade(row):
+    df = pd.DataFrame([row])
+    mode = "a" if os.path.exists(LOG_FILE) else "w"
+    df.to_csv(LOG_FILE, mode=mode, header=not os.path.exists(LOG_FILE), index=False)
 
-# Schedule to run every 30 minutes
-schedule.every(30).minutes.do(check_and_trade)
+# =====================
+# Trading Function
+# =====================
+def trade():
+    now = dt.datetime.utcnow()
 
-if __name__ == "__main__":
-    print("Starting Senator-Based Paper Trading Bot...")
-    while True:
-        schedule.run_pending()
-        time.sleep(60)
+    if not market_is_open():
+        print(f"{now} | Market closed, skipping trade.")
+        return
+
+    for symbol in SYMBOLS:
+        try:
+            df_bars = get_latest_bars(symbol)
+            if df_bars.empty or len(df_bars) < 5:
+                continue
+
+            X = df_bars.iloc[-1:][FEATURES]
+            pred = float(model.predict(X)[0])
+
+            signal = "LONG" if pred > CONF_THRESHOLD else "FLAT"
+            in_position = has_position(symbol)
+
+            if signal == "LONG" and not in_position:
+                api.submit_order(
+                    symbol=symbol,
+                    qty=QTY_PER_TRADE,
+                    side="buy",
+                    type="market",
+                    time_in_force="gtc"
+                )
+
+            account = api.get_account()
+
+            log_trade({
+                "timestamp": now,
+                "symbol": symbol,
+                "signal": signal,
+                "price": float(df_bars["close"].iloc[-1]),
+                "prediction": pred,
+                "equity": float(account.equity)
+            })
+
+            print(f"{now} | {symbol} | {signal} | pred={pred:.5f} | equity={account.equity}")
+
+        except Exception as e:
+            print(f"[ERROR] {symbol}: {e}")
+
+# =====================
+# Scheduler Setup
+# =====================
+print("🚀 Starting Alpaca Paper Trading Scheduler")
+
+# Run trade every minute
+schedule.every(1).minutes.do(trade)
+
+while True:
+    schedule.run_pending()
+    time.sleep(1)
