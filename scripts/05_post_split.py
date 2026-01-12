@@ -24,7 +24,7 @@ df_merged = pd.merge(
     how="inner"
 )
 
-
+# Save splits to JSON for reference
 with open(f"{PATH_BARS}/splits.json", "w") as f:
     json.dump(SPLITS, f, indent=2)
 
@@ -36,12 +36,11 @@ ema_windows = [5, 10, 15, 30]
 feature_cols = [f"ema_{w}" for w in ema_windows] + \
                [f"ema_{w}_slope" for w in ema_windows] + \
                [f"ema_{w}_accel" for w in ema_windows] + \
-               ["close", "volume", "vwap"] + \
+               ["close", "volume", "vwap", "volume_spike"] + \
                [col for col in df_merged.columns if col.startswith("sentiment_")]
 
-target_col = "future_return_30m"
-
-# Target: future_return_30m
+target_col_future_return = "future_return_30m"
+target_col_future_direction = "target_direction"
 
 df_merged = df_merged.set_index("timestamp").sort_index()
 
@@ -51,9 +50,9 @@ val   = df_merged.loc[SPLITS['VAL'][0]:SPLITS['VAL'][1]]
 test  = df_merged.loc[SPLITS['TEST'][0]:SPLITS['TEST'][1]]
 
 # Save features and target variables
-X_train, y_train = train[feature_cols], train[[target_col, "symbol"]]
-X_val, y_val = val[feature_cols], val[[target_col, "symbol"]]
-X_test, y_test = test[feature_cols], test[[target_col, "symbol"]]
+X_train, y_train = train[feature_cols], train[[target_col_future_return,target_col_future_direction, "symbol"]]
+X_val, y_val = val[feature_cols], val[[target_col_future_return, target_col_future_direction, "symbol"]]
+X_test, y_test = test[feature_cols], test[[target_col_future_return, target_col_future_direction, "symbol"]]
 
 # Save the scaled features back to DataFrames
 X_train = pd.DataFrame(X_train, columns=feature_cols, index=X_train.index)

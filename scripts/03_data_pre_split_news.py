@@ -72,6 +72,7 @@ for symbol in SYMBOLS:
         future_returns.append(ret)
 
     df_symbol["future_return_30m"] = future_returns
+    df_symbol["target_direction"] = df_symbol["future_return_30m"].apply(lambda x: 1 if x > 0 else 0)
     targets.append(df_symbol)
 
 # Combine all symbols again

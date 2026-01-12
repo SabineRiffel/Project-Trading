@@ -19,3 +19,5 @@
 /data/news_random_forest_train_metrics_per_symbol.csv
 /scripts/test.py
 /data/paper_trading_log.csv
+/scripts/deployment.py
+/data/news model/random_forest_model_news.pkl
