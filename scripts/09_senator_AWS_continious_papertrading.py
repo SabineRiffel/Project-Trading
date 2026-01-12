@@ -81,6 +81,22 @@ def log_trade(row):
     mode = "a" if os.path.exists(LOG_FILE) else "w"
     df.to_csv(LOG_FILE, mode=mode, header=not os.path.exists(LOG_FILE), index=False)
 
+def build_features(df, now):
+    # Use last two bars to recreate training features
+    last = df.iloc[-1]
+    prev = df.iloc[-2]
+
+    features = {
+        "signed_amount": (last["close"] - prev["close"]) * last["volume"],
+        "tx_hour": now.hour,
+        "tx_weekday": now.weekday(),
+        "price_before": prev["close"],
+        "vol_before": prev["volume"],
+        "vwap_before": prev["vwap"],
+    }
+
+    return pd.DataFrame([features])
+
 # =====================
 # Trading Function
 # =====================
@@ -101,7 +117,7 @@ def trade():
                 if df_bars.empty or len(df_bars) < 5:
                     continue
 
-                X = df_bars.iloc[-1:][FEATURES]
+                X = build_features(df_bars, now)[FEATURES]
                 pred = float(model.predict(X)[0])
                 signal = "LONG" if pred > acc["conf_threshold"] else "FLAT"
                 in_position = has_position(api, symbol)

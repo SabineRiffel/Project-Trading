@@ -3,15 +3,15 @@
 ## Problem Definition
 **Target**
 
-The goal of this project is to predict the intraday trend direction of Apple Inc. (AAPL) stock prices over the next t = [5, 10, 15, 30] minutes using historical minute-level data from 2022-01-01 to 2025-06-30. 
-We use a Random Forest model with features including the linear regression slope over each t-minute window, normalized by the mean price, to classify the trend direction.
+The goal of this project is to predict the short-term intraday return of selected U.S. stocks (AAPL, MSFT, NFLX, AMZN PYPL, NVDA) over the next 30 minutes using historical minute-level market data, historical financial news and senator trades from 2022-01-01 to 2025-06-30.
+The target variable is the future 30‑minute return. We used a random forest regression model  to estimate this return, which is then converted into trading signals (LONG vs. FLAT) for deployment in a live paper‑trading environment.
 
 **Input Features**
 
 Normalized VWAP (volume weighted average price) and volume
-Normalized exponential moving average (EMA) over t = [5, 10, 15, 30, 60] minutes
-Linear regression slope of EMAs over t = [5, 10, 15, 30, 60] minutes
-Second-order slope (acceleration) of EMAs over t = [5, 10, 15, 30, 60] minutes
+Normalized exponential moving average (EMA) over t = [5, 10, 15, 30] minutes
+Linear regression slope of EMAs over t = [5, 10, 15, 30] minutes
+Second-order slope (acceleration) of EMAs over t = [5, 10, 15, 30] minutes
 
 ---
 
@@ -26,6 +26,7 @@ Second-order slope (acceleration) of EMAs over t = [5, 10, 15, 30, 60] minutes
 - [7 - Model Training & Validation](#7---model-training--validation)
 - [8 - Final Testing](#8---final-testing)
 - [9 - Deployment](#9---deployment)
+- [10 - Iteration 1](#10---iteration-1)
 
 ---
 
@@ -402,6 +403,65 @@ All trades and predictions are stored in `paper_trading_log.csv`.
 ![09_paper_avg_pred.png](images/09_paper_avg_pred.png)
 *Average predicted absolute move per stock.*
 
+---
+## 10 - Iteration 1
+
+### **Description**
+
+1. Added new target variable `target_direction` for classification of up/down movement and re-trained random forest classifier. Evaluated performance on validation set using accuracy and compared to regression model performance using MAE.
+
+![10_add_new_target.png](images/10_add_new_target.png)
+
+![10_random_forest_classifier_acc.png](images/10_random_forest_classifier_acc.png)
+*Random Forest Classifier Accuracy on validation set per symbol.*
+
+![10_random_forest_regressor_MAE.png](images/10_random_forest_regressor_MAE.png)
+*Random Forest Regressor MAE on validation set per symbol.*
+
+2. Added new feature `volume_spike` to capture sudden increases in trading volume and re-trained random forest regressor. 
+
+![10_paper_feature_importances.png](images/10_paper_feature_importances.png)
+
+3. Implemented EXIT signal based on predicted return turning negative for a more realistic trading strategy during paper trading.
+
+![10_overall_performance_news_model.png](images/10_overall_performance_news_model.png)
+*Overall performance of the news-based model during paper trading*
+---
+
+### **Description**
+
+This iteration focuses on improving the **senator-based trading deployment** and enabling **systematic strategy comparison**.
+
+---
+
+### **Multi-Account Paper Trading**
+
+The senator model was deployed simultaneously on **three separate Alpaca paper trading accounts**, each using the same model but a different **decision threshold (`conf_threshold`)** to reflect different risk profiles:
+
+- **Baseline:** `conf_threshold = 0.01` (backtested default)  
+- **Conservative:** `conf_threshold = 0.02` (only reacts on strong signals, therefore trades less frequent)  
+- **Aggressive:** `conf_threshold = 0.005` (more frequent trades due to accepting weaker signals)  
+
+This setup allows direct comparison of **trade frequency** and **equity development** under identical market conditions.
+
+---
+
+### **Deployment & Logging**
+
+- The system runs continuously on an **AWS EC2 instance** during market hours. 
+- The EC2 is made of a t3.mirco with 2 virtual CPUs and 1 Gb of memory, enough to run the traines randomforest model on.
+- All predictions and trade decisions are logged to `paper_trading_log.csv`, including:  
+  `timestamp`, `account`, `symbol`, `signal`, `prediction`, and `equity`.
+- Using split the models to run on the local network aswell as AWS for redundancy.
+
+---
+
+### **Status & Limitations**
+
+- Live evaluation is still limited due to **short runtime**.  
+- EC2 instance is running script on sheduled time to limit needed resources. 
+- Issues with testing running the script on the servers due to limited market hours on weekdays and weekends.
+---
 
 
 
