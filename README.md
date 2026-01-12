@@ -428,6 +428,41 @@ All trades and predictions are stored in `paper_trading_log.csv`.
 *Overall performance of the news-based model during paper trading*
 ---
 
+### **Description**
+
+This iteration focuses on improving the **senator-based trading deployment** and enabling **systematic strategy comparison**.
+
+---
+
+### **Multi-Account Paper Trading**
+
+The senator model was deployed simultaneously on **three separate Alpaca paper trading accounts**, each using the same model but a different **decision threshold (`conf_threshold`)** to reflect different risk profiles:
+
+- **Baseline:** `conf_threshold = 0.01` (backtested default)  
+- **Conservative:** `conf_threshold = 0.02` (only reacts on strong signals, therefore trades less frequent)  
+- **Aggressive:** `conf_threshold = 0.005` (more frequent trades due to accepting weaker signals)  
+
+This setup allows direct comparison of **trade frequency** and **equity development** under identical market conditions.
+
+---
+
+### **Deployment & Logging**
+
+- The system runs continuously on an **AWS EC2 instance** during market hours. 
+- The EC2 is made of a t3.mirco with 2 virtual CPUs and 1 Gb of memory, enough to run the traines randomforest model on.
+- All predictions and trade decisions are logged to `paper_trading_log.csv`, including:  
+  `timestamp`, `account`, `symbol`, `signal`, `prediction`, and `equity`.
+- Using split the models to run on the local network aswell as AWS for redundancy.
+
+---
+
+### **Status & Limitations**
+
+- Live evaluation is still limited due to **short runtime**.  
+- EC2 instance is running script on sheduled time to limit needed resources. 
+- Issues with testing running the script on the servers due to limited market hours on weekdays and weekends.
+---
+
 
 
 
