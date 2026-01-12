@@ -406,27 +406,34 @@ All trades and predictions are stored in `paper_trading_log.csv`.
 ---
 ## 10 - Iteration 1
 
+### **Stock & News Data**
+
 ### **Description**
 
-1. Added new target variable `target_direction` for classification of up/down movement and re-trained random forest classifier. Evaluated performance on validation set using accuracy and compared to regression model performance using MAE.
+This iteration focuses on enhancing the **news-based trading deployment** by introducing a new feature and refining the trading strategy for better performance during paper trading.
 
-![10_add_new_target.png](images/10_add_new_target.png)
+--- 
+### Feature Enhancements
 
-![10_random_forest_classifier_acc.png](images/10_random_forest_classifier_acc.png)
-*Random Forest Classifier Accuracy on validation set per symbol.*
+- Added a new feature `volume_spike` to detect sudden increases in trading activity.
+- This feature captures short‑term volatility and helps the model react to impulsive market movements.
+- The Random Forest regressor was re‑trained using the expanded feature set.
 
-![10_random_forest_regressor_MAE.png](images/10_random_forest_regressor_MAE.png)
-*Random Forest Regressor MAE on validation set per symbol.*
-
-2. Added new feature `volume_spike` to capture sudden increases in trading volume and re-trained random forest regressor. 
 
 ![10_paper_feature_importances.png](images/10_paper_feature_importances.png)
+*Feature importances of the retrained news-based model, highlighting the significance of the newly added `volume_spike` feature in predicting short-term stock returns.*
 
-3. Implemented EXIT signal based on predicted return turning negative for a more realistic trading strategy during paper trading.
-
-![10_overall_performance_news_model.png](images/10_overall_performance_news_model.png)
-*Overall performance of the news-based model during paper trading*
 ---
+### Trading Logic Enhancements
+
+- Implemented an EXIT signal that triggers when the predicted return becomes negative.
+- This creates a more realistic and risk‑aware trading behavior during paper trading.
+- The updated trading logic is as follows:
+  - LONG (buy): If the predicted return > 0
+  - FLAT (no position): If no current position and predicted return = 0
+  - EXIT (sell): If currently in a position and predicted return < 0
+---
+### **Stock & Senator Data**
 
 ### **Description**
 
